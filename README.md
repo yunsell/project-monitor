@@ -1,101 +1,106 @@
 # Data Freshness Monitor
 
-여러 서비스의 MySQL/MariaDB 데이터베이스를 모니터링하여, 각 테이블의 **마지막 데이터 입력 시각**을 웹 대시보드에서 한눈에 확인할 수 있는 관리 도구입니다.
+[한국어](./README.ko.md)
 
-> "데이터가 정상적으로 들어오고 있는가?"를 실시간으로 파악하기 어려운 문제를 해결합니다.
+A monitoring tool that tracks the **last data insertion time** of each table across multiple MySQL/MariaDB databases and displays the results on a web dashboard.
 
-## 주요 기능
+> Solves the problem of not being able to tell in real time whether data is flowing into your services normally.
 
-- **다중 서비스 모니터링** — `config.yml` 하나로 여러 DB 서버의 여러 테이블을 관리
-- **자동 주기 체크** — APScheduler 기반, 설정한 간격(기본 10분)마다 자동 실행
-- **웹 대시보드** — 상태 요약 뱃지, 서비스별 아코디언 카드, 30초 자동 갱신
-- **상태 판단** — 데이터 경과 시간 기반 OK / Warning / Critical / Error 분류
-- **환경변수 지원** — DB 비밀번호 등 민감 정보를 `.env`로 분리 관리
-- **수동 체크** — 대시보드에서 버튼 클릭으로 즉시 전체 체크 실행
+## Features
 
-## 상태 판단 기준
+- **Multi-service monitoring** — manage multiple DB servers and tables with a single `config.yml`
+- **Automatic periodic checks** — APScheduler-based, runs at configurable intervals (default: 10 min)
+- **Web dashboard** — status summary badges, accordion service cards, 30-second auto-refresh
+- **Dark mode** — toggle with localStorage persistence, auto-detects OS preference
+- **History chart** — per-table data age trend visualization (last 7 days)
+- **Status classification** — OK / Warning / Critical / Error based on data age
+- **Environment variable support** — sensitive info like DB passwords managed via `.env`
+- **Manual check** — trigger an immediate check from the dashboard
+- **Rate limiting** — `/api/check/now` limited to once per 30 seconds
 
-| 상태 | 조건 | 기본값 |
-|------|------|--------|
-| OK | 마지막 데이터가 threshold 이내 | 24시간 이내 |
-| Warning | 마지막 데이터가 alert threshold 초과, 또는 데이터 없음(NULL) | 24시간 초과 |
-| Critical | 마지막 데이터가 critical threshold 초과 | 72시간 초과 |
-| Error | DB 접속 실패 또는 쿼리 에러 | - |
+## Status Criteria
 
-threshold 값은 `config.yml`의 `monitor` 섹션에서 변경할 수 있습니다.
+| Status | Condition | Default |
+|--------|-----------|---------|
+| OK | Last data within alert threshold | Within 24 hours |
+| Warning | Last data exceeds alert threshold, or NULL | Over 24 hours |
+| Critical | Last data exceeds critical threshold | Over 72 hours |
+| Error | DB connection failure or query error | - |
 
-## 기술 스택
+Thresholds are configurable in the `monitor` section of `config.yml`.
 
-| 영역 | 기술 |
-|------|------|
-| Checker 엔진 | Python + APScheduler |
-| Backend API | FastAPI (비동기) |
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Checker Engine | Python + APScheduler |
+| Backend API | FastAPI (async) |
 | Meta Storage | SQLite (aiosqlite) |
-| Frontend | HTML + CSS + JS (단일 파일, 빌드 불필요) |
-| DB 접속 | PyMySQL |
+| Frontend | HTML + CSS + JS (single file, no build step) |
+| DB Connector | PyMySQL |
 
-## 프로젝트 구조
+## Project Structure
 
 ```
 project-monitor/
-├── config.example.yml       # 설정 파일 템플릿
-├── .env.example             # 환경변수 템플릿
+├── config.example.yml       # Configuration template
+├── .env.example             # Environment variables template
 ├── requirements.txt
 ├── checker/
-│   ├── config_loader.py     # config.yml 로드 + ${ENV_VAR} 치환
-│   ├── db_connector.py      # MySQL 접속 + MAX 쿼리 + 상태 판단
-│   └── models.py            # SQLite 테이블 생성 + CRUD
+│   ├── config_loader.py     # Load config.yml + ${ENV_VAR} substitution
+│   ├── db_connector.py      # MySQL connection + MAX query + status logic
+│   └── models.py            # SQLite table creation + CRUD
 ├── api/
-│   ├── main.py              # FastAPI 앱 + APScheduler (단일 프로세스)
-│   └── routes.py            # API 엔드포인트
+│   ├── main.py              # FastAPI app + APScheduler (single process)
+│   └── routes.py            # API endpoints
 └── frontend/
-    └── index.html           # 대시보드 UI
+    └── index.html           # Dashboard UI
 ```
 
-## 빠른 시작
+## Quick Start
 
 ```bash
-# 1. 가상환경 생성 및 활성화
+# 1. Create and activate virtual environment
 python3 -m venv venv && source venv/bin/activate
 
-# 2. 의존성 설치
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. 설정 파일 준비
-cp config.example.yml config.yml   # 모니터링 대상 서비스 설정
-cp .env.example .env               # DB 접속 정보 입력
+# 3. Prepare configuration files
+cp config.example.yml config.yml   # Configure monitoring targets
+cp .env.example .env               # Enter DB credentials
 
-# 4. config.yml과 .env를 실제 환경에 맞게 수정
+# 4. Edit config.yml and .env to match your environment
 
-# 5. 서버 실행
+# 5. Start the server
 uvicorn api.main:app --reload --port 8100
 
-# 6. 브라우저에서 확인
+# 6. Open in browser
 open http://localhost:8100
 ```
 
-## 설정
+## Configuration
 
 ### config.yml
 
 ```yaml
 monitor:
-  check_interval_minutes: 10    # 체크 주기 (분)
-  alert_threshold_hours: 24     # Warning 기준 (시간)
-  critical_threshold_hours: 72  # Critical 기준 (시간)
+  check_interval_minutes: 10    # Check interval (minutes)
+  alert_threshold_hours: 24     # Warning threshold (hours)
+  critical_threshold_hours: 72  # Critical threshold (hours)
 
 services:
   - name: "my-service"
-    description: "서비스 설명"
+    description: "My service description"
     host: "localhost"
     port: 3306
-    user: "${DB_USER}"          # .env 환경변수 참조
+    user: "${DB_USER}"          # Reference .env variable
     password: "${DB_PASS}"
     database: "my_database"
     checks:
       - table: "orders"
-        column: "created_at"    # MAX() 쿼리 대상 컬럼
-        label: "주문 데이터"     # 대시보드 표시명
+        column: "created_at"    # Column for MAX() query
+        label: "Order Data"     # Display name on dashboard
 ```
 
 ### .env
@@ -105,18 +110,19 @@ DB_USER=your_db_user
 DB_PASS=your_db_password
 ```
 
-`config.yml`에서 `${VAR_NAME}` 형태로 환경변수를 참조하면, `.env` 파일의 값으로 자동 치환됩니다.
+Use `${VAR_NAME}` syntax in `config.yml` to reference environment variables from `.env`.
 
-## API 엔드포인트
+## API Endpoints
 
-| Method | Path | 설명 |
-|--------|------|------|
-| GET | `/api/status` | 전체 서비스 상태 (요약 + 서비스별 체크 결과) |
-| GET | `/api/status/{service_name}` | 특정 서비스 상세 |
-| GET | `/api/history/{service_name}` | 체크 이력 |
-| POST | `/api/check/now` | 즉시 체크 실행 (수동 트리거) |
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/status` | All services status (summary + per-service checks) |
+| GET | `/api/status/{service_name}` | Single service details |
+| GET | `/api/history/{service_name}` | Check history |
+| GET | `/api/chart/{service_name}/{table_name}` | Chart data (last 7 days) |
+| POST | `/api/check/now` | Trigger immediate check (rate limited: 30s) |
 
-### 응답 예시 — `GET /api/status`
+### Response Example — `GET /api/status`
 
 ```json
 {
@@ -131,11 +137,11 @@ DB_PASS=your_db_password
   "services": [
     {
       "name": "ecommerce-api",
-      "description": "이커머스 주문 서비스",
+      "description": "E-commerce order service",
       "checks": [
         {
           "table": "orders",
-          "label": "주문 데이터",
+          "label": "Order Data",
           "last_data_at": "2026-03-19T14:25:33",
           "hours_ago": 0.07,
           "status": "ok"
@@ -147,9 +153,9 @@ DB_PASS=your_db_password
 }
 ```
 
-## 배포 (선택)
+## Deployment (Optional)
 
-### systemd 서비스
+### systemd Service
 
 ```ini
 # /etc/systemd/system/data-monitor.service
@@ -169,7 +175,7 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
-### Nginx 리버스 프록시
+### Nginx Reverse Proxy
 
 ```nginx
 server {
@@ -190,6 +196,6 @@ server {
 }
 ```
 
-## 라이선스
+## License
 
 MIT License
