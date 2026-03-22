@@ -6,6 +6,12 @@ A monitoring tool that tracks the **last data insertion time** of each table acr
 
 > Solves the problem of not being able to tell in real time whether data is flowing into your services normally.
 
+## Screenshots
+
+| Light Mode | Dark Mode |
+|:---:|:---:|
+| ![Light](docs/screenshot-light.png) | ![Dark](docs/screenshot-dark.png) |
+
 ## Features
 
 - **Multi-service monitoring** — manage multiple DB servers and tables with a single `config.yml`

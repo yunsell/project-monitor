@@ -6,6 +6,12 @@
 
 > "데이터가 정상적으로 들어오고 있는가?"를 실시간으로 파악하기 어려운 문제를 해결합니다.
 
+## 스크린샷
+
+| Light Mode | Dark Mode |
+|:---:|:---:|
+| ![Light](docs/screenshot-light.png) | ![Dark](docs/screenshot-dark.png) |
+
 ## 주요 기능
 
 - **다중 서비스 모니터링** — `config.yml` 하나로 여러 DB 서버의 여러 테이블을 관리
