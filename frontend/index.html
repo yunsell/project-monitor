@@ -409,15 +409,17 @@
         }
 
         function formatHoursAgo(hours) {
-            if (hours < 1) {
-                const mins = Math.round(hours * 60);
-                return `${mins}min ago`;
-            }
+            const totalMins = Math.round(hours * 60);
+            if (totalMins < 1) return '방금 전';
+            if (totalMins < 60) return `${totalMins}분 전`;
             if (hours < 24) {
-                return `${Math.round(hours)}h ago`;
+                const h = Math.floor(hours);
+                const m = Math.round((hours - h) * 60);
+                return m > 0 ? `${h}시간 ${m}분 전` : `${h}시간 전`;
             }
-            const days = Math.round(hours / 24);
-            return `${days}d ago`;
+            const days = Math.floor(hours / 24);
+            const remainHours = Math.round(hours % 24);
+            return remainHours > 0 ? `${days}일 ${remainHours}시간 전` : `${days}일 전`;
         }
 
         function statusLabel(s) {
