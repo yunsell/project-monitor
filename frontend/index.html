@@ -5,41 +5,80 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Freshness Monitor</title>
     <style>
+        :root {
+            --bg: #f0f2f5;
+            --card-bg: #fff;
+            --text: #1a1a2e;
+            --text-sub: #888;
+            --text-muted: #aaa;
+            --border: #e0e0e0;
+            --border-light: #f0f0f0;
+            --border-row: #f5f5f5;
+            --hover-bg: #fafafa;
+            --shadow: rgba(0,0,0,0.06);
+            --header-shadow: rgba(0,0,0,0.08);
+            --btn-bg: #4361ee;
+            --btn-hover: #3a56d4;
+            --ok: #2ecc71;
+            --ok-bg: #d5f5e3;
+            --ok-text: #1e8449;
+            --warn: #f39c12;
+            --warn-bg: #fdebd0;
+            --warn-text: #b7950b;
+            --crit: #e74c3c;
+            --crit-bg: #fadbd8;
+            --crit-text: #a93226;
+        }
+
+        [data-theme="dark"] {
+            --bg: #1a1a2e;
+            --card-bg: #252540;
+            --text: #e0e0e0;
+            --text-sub: #999;
+            --text-muted: #666;
+            --border: #3a3a5c;
+            --border-light: #2e2e4a;
+            --border-row: #2e2e4a;
+            --hover-bg: #2e2e4a;
+            --shadow: rgba(0,0,0,0.3);
+            --header-shadow: rgba(0,0,0,0.3);
+            --ok-bg: #1a3a2a;
+            --ok-text: #5dda8f;
+            --warn-bg: #3a2e1a;
+            --warn-text: #f5b945;
+            --crit-bg: #3a1a1a;
+            --crit-text: #f07070;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
-            color: #1a1a2e;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
         }
 
         .header {
-            background: #fff;
-            border-bottom: 1px solid #e0e0e0;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
             padding: 20px 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px var(--header-shadow);
         }
 
-        .header h1 {
-            font-size: 22px;
-            font-weight: 700;
-            color: #1a1a2e;
-        }
+        .header h1 { font-size: 22px; font-weight: 700; }
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 12px;
         }
 
-        .last-check {
-            font-size: 13px;
-            color: #888;
-        }
+        .last-check { font-size: 13px; color: var(--text-sub); }
 
         .btn {
             padding: 8px 18px;
@@ -51,13 +90,20 @@
             transition: all 0.15s;
         }
 
-        .btn-refresh {
-            background: #4361ee;
-            color: #fff;
+        .btn-refresh { background: var(--btn-bg); color: #fff; }
+        .btn-refresh:hover { background: var(--btn-hover); }
+        .btn-refresh:disabled { background: #a0a0a0; cursor: not-allowed; }
+
+        .btn-theme {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            font-size: 16px;
+            line-height: 1;
         }
 
-        .btn-refresh:hover { background: #3a56d4; }
-        .btn-refresh:disabled { background: #a0a0a0; cursor: not-allowed; }
+        .btn-theme:hover { background: var(--hover-bg); }
 
         .container {
             max-width: 900px;
@@ -73,41 +119,33 @@
 
         .summary-card {
             flex: 1;
-            background: #fff;
+            background: var(--card-bg);
             border-radius: 10px;
             padding: 20px;
             text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 3px var(--shadow);
             border-top: 4px solid transparent;
         }
 
-        .summary-card.ok { border-top-color: #2ecc71; }
-        .summary-card.warning { border-top-color: #f39c12; }
-        .summary-card.critical { border-top-color: #e74c3c; }
-        .summary-card.error { border-top-color: #e74c3c; }
+        .summary-card.ok { border-top-color: var(--ok); }
+        .summary-card.warning { border-top-color: var(--warn); }
+        .summary-card.critical { border-top-color: var(--crit); }
+        .summary-card.error { border-top-color: var(--crit); }
 
-        .summary-count {
-            font-size: 36px;
-            font-weight: 700;
-            line-height: 1;
-        }
+        .summary-count { font-size: 36px; font-weight: 700; line-height: 1; }
 
-        .summary-card.ok .summary-count { color: #2ecc71; }
-        .summary-card.warning .summary-count { color: #f39c12; }
-        .summary-card.critical .summary-count { color: #e74c3c; }
-        .summary-card.error .summary-count { color: #e74c3c; }
+        .summary-card.ok .summary-count { color: var(--ok); }
+        .summary-card.warning .summary-count { color: var(--warn); }
+        .summary-card.critical .summary-count { color: var(--crit); }
+        .summary-card.error .summary-count { color: var(--crit); }
 
-        .summary-label {
-            font-size: 13px;
-            color: #888;
-            margin-top: 6px;
-        }
+        .summary-label { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
 
         .service-card {
-            background: #fff;
+            background: var(--card-bg);
             border-radius: 10px;
             margin-bottom: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            box-shadow: 0 1px 3px var(--shadow);
             overflow: hidden;
         }
 
@@ -121,23 +159,11 @@
             transition: background 0.1s;
         }
 
-        .service-header:hover { background: #fafafa; }
+        .service-header:hover { background: var(--hover-bg); }
 
-        .service-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .service-name {
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .service-desc {
-            font-size: 13px;
-            color: #888;
-        }
+        .service-info { display: flex; align-items: center; gap: 10px; }
+        .service-name { font-weight: 600; font-size: 16px; }
+        .service-desc { font-size: 13px; color: var(--text-sub); }
 
         .status-badge {
             padding: 4px 12px;
@@ -147,116 +173,167 @@
             text-transform: uppercase;
         }
 
-        .status-badge.ok { background: #d5f5e3; color: #1e8449; }
-        .status-badge.warning { background: #fdebd0; color: #b7950b; }
-        .status-badge.critical { background: #fadbd8; color: #a93226; }
-        .status-badge.error { background: #fadbd8; color: #a93226; }
+        .status-badge.ok { background: var(--ok-bg); color: var(--ok-text); }
+        .status-badge.warning { background: var(--warn-bg); color: var(--warn-text); }
+        .status-badge.critical { background: var(--crit-bg); color: var(--crit-text); }
+        .status-badge.error { background: var(--crit-bg); color: var(--crit-text); }
 
         .service-checks {
-            border-top: 1px solid #f0f0f0;
+            border-top: 1px solid var(--border-light);
             display: none;
         }
 
-        .service-card.open .service-checks {
-            display: block;
-        }
+        .service-card.open .service-checks { display: block; }
 
         .check-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 12px 20px 12px 36px;
-            border-bottom: 1px solid #f5f5f5;
+            border-bottom: 1px solid var(--border-row);
         }
 
         .check-row:last-child { border-bottom: none; }
 
-        .check-left {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
+        .check-left { display: flex; flex-direction: column; gap: 2px; }
+        .check-label { font-size: 14px; font-weight: 500; }
+        .check-table { font-size: 12px; color: var(--text-muted); font-family: 'SF Mono', Monaco, monospace; }
 
-        .check-label {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .check-table {
-            font-size: 12px;
-            color: #aaa;
-            font-family: 'SF Mono', Monaco, monospace;
-        }
-
-        .check-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-align: right;
-        }
-
-        .check-time {
-            font-size: 13px;
-            color: #555;
-        }
-
-        .check-ago {
-            font-size: 12px;
-            color: #999;
-        }
+        .check-right { display: flex; align-items: center; gap: 12px; text-align: right; }
+        .check-time { font-size: 13px; color: var(--text-sub); }
+        .check-ago { font-size: 12px; color: var(--text-muted); }
 
         .check-error {
             font-size: 12px;
-            color: #e74c3c;
+            color: var(--crit);
             max-width: 300px;
             word-break: break-word;
         }
 
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 10px; height: 10px;
             border-radius: 50%;
             display: inline-block;
             flex-shrink: 0;
         }
 
-        .status-dot.ok { background: #2ecc71; }
-        .status-dot.warning { background: #f39c12; }
-        .status-dot.critical { background: #e74c3c; }
-        .status-dot.error { background: #e74c3c; }
+        .status-dot.ok { background: var(--ok); }
+        .status-dot.warning { background: var(--warn); }
+        .status-dot.critical { background: var(--crit); }
+        .status-dot.error { background: var(--crit); }
 
-        .chevron {
-            transition: transform 0.2s;
-            color: #ccc;
+        .chevron { transition: transform 0.2s; color: var(--text-muted); font-size: 12px; }
+        .service-card.open .chevron { transform: rotate(90deg); }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state p { font-size: 16px; margin-bottom: 8px; }
+        .loading { text-align: center; padding: 60px; color: var(--text-muted); }
+
+        /* Chart button */
+        .btn-chart {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            padding: 3px 10px;
+            border-radius: 4px;
             font-size: 12px;
+            cursor: pointer;
+            margin-left: 8px;
         }
 
-        .service-card.open .chevron {
-            transform: rotate(90deg);
+        .btn-chart:hover { background: var(--hover-bg); color: var(--text); }
+
+        /* Chart modal */
+        .chart-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #aaa;
+        .chart-modal {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 90vh;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
         }
 
-        .empty-state p {
-            font-size: 16px;
-            margin-bottom: 8px;
+        .chart-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
         }
 
-        .loading {
-            text-align: center;
-            padding: 60px;
-            color: #aaa;
+        .chart-modal-header h3 { font-size: 16px; }
+
+        .btn-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 4px 8px;
         }
+
+        .btn-close:hover { color: var(--text); }
+
+        .chart-container {
+            width: 100%;
+            height: 280px;
+            position: relative;
+        }
+
+        .chart-container canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        .chart-empty {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 280px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        [data-theme="dark"] .toast { background: #555; }
 
         @media (max-width: 600px) {
             .header { padding: 16px; flex-direction: column; gap: 12px; }
             .summary { flex-wrap: wrap; }
             .summary-card { min-width: 45%; }
             .container { padding: 0 12px; }
+            .chart-modal { width: 95%; padding: 16px; }
         }
     </style>
 </head>
@@ -265,9 +342,8 @@
         <h1>Data Freshness Monitor</h1>
         <div class="header-right">
             <span class="last-check" id="lastCheck"></span>
-            <button class="btn btn-refresh" id="btnRefresh" onclick="triggerCheck()">
-                Refresh
-            </button>
+            <button class="btn btn-refresh" id="btnRefresh" onclick="triggerCheck()">Refresh</button>
+            <button class="btn btn-theme" id="btnTheme" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
         </div>
     </div>
 
@@ -278,10 +354,43 @@
         </div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
     <script>
         const API_BASE = '/api';
         let autoRefreshTimer = null;
+        let currentChart = null;
 
+        // ── Theme ──
+        function initTheme() {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+
+        initTheme();
+
+        // ── Toast ──
+        function showToast(msg, duration = 3000) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), duration);
+        }
+
+        // ── Fetch & Render ──
         async function fetchStatus() {
             try {
                 const res = await fetch(`${API_BASE}/status`);
@@ -295,7 +404,6 @@
         }
 
         function renderDashboard(data) {
-            // Summary
             const s = data.summary || { ok: 0, warning: 0, critical: 0, error: 0 };
             document.getElementById('summary').innerHTML = `
                 <div class="summary-card ok">
@@ -316,13 +424,11 @@
                 </div>
             `;
 
-            // Last check time
             if (data.checked_at) {
                 document.getElementById('lastCheck').textContent =
                     'Last check: ' + formatDatetime(data.checked_at);
             }
 
-            // Services
             const container = document.getElementById('services');
             if (!data.services || data.services.length === 0) {
                 container.innerHTML = '<div class="empty-state"><p>No services configured</p></div>';
@@ -342,13 +448,13 @@
                         <span class="status-badge ${svc.overall_status}">${statusLabel(svc.overall_status)}</span>
                     </div>
                     <div class="service-checks">
-                        ${svc.checks.map(c => renderCheck(c)).join('')}
+                        ${svc.checks.map(c => renderCheck(c, svc.name)).join('')}
                     </div>
                 </div>
             `).join('');
         }
 
-        function renderCheck(c) {
+        function renderCheck(c, serviceName) {
             const timeStr = c.last_data_at ? formatDatetime(c.last_data_at) : '-';
             const agoStr = c.hours_ago !== null && c.hours_ago !== undefined
                 ? formatHoursAgo(c.hours_ago) : '';
@@ -358,7 +464,10 @@
             return `
                 <div class="check-row">
                     <div class="check-left">
-                        <span class="check-label">${esc(c.label || c.table)}</span>
+                        <span class="check-label">
+                            ${esc(c.label || c.table)}
+                            <button class="btn-chart" onclick="event.stopPropagation(); openChart('${esc(serviceName)}', '${esc(c.table)}', '${esc(c.label || c.table)}')">Chart</button>
+                        </span>
                         <span class="check-table">${esc(c.table)}</span>
                     </div>
                     <div class="check-right">
@@ -377,13 +486,20 @@
             el.classList.toggle('open');
         }
 
+        // ── Manual Check with Rate Limit feedback ──
         async function triggerCheck() {
             const btn = document.getElementById('btnRefresh');
             btn.disabled = true;
             btn.textContent = 'Checking...';
             try {
-                await fetch(`${API_BASE}/check/now`, { method: 'POST' });
-                // Wait a moment for checks to complete
+                const res = await fetch(`${API_BASE}/check/now`, { method: 'POST' });
+                if (res.status === 429) {
+                    const data = await res.json();
+                    showToast(data.detail || '잠시 후 다시 시도해주세요.');
+                    btn.disabled = false;
+                    btn.textContent = 'Refresh';
+                    return;
+                }
                 setTimeout(async () => {
                     await fetchStatus();
                     btn.disabled = false;
@@ -395,6 +511,170 @@
             }
         }
 
+        // ── Chart ──
+        async function openChart(serviceName, tableName, label) {
+            try {
+                const res = await fetch(`${API_BASE}/chart/${encodeURIComponent(serviceName)}/${encodeURIComponent(tableName)}?days=7`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                showChartModal(serviceName, label, json.data);
+            } catch (e) {
+                showToast('Chart data load failed: ' + e.message);
+            }
+        }
+
+        function showChartModal(serviceName, label, data) {
+            const existing = document.querySelector('.chart-overlay');
+            if (existing) existing.remove();
+
+            const overlay = document.createElement('div');
+            overlay.className = 'chart-overlay';
+            overlay.onclick = (e) => { if (e.target === overlay) closeChart(); };
+
+            const isEmpty = !data || data.length === 0;
+
+            overlay.innerHTML = `
+                <div class="chart-modal">
+                    <div class="chart-modal-header">
+                        <h3>${esc(serviceName)} / ${esc(label)}</h3>
+                        <button class="btn-close" onclick="closeChart()">&times;</button>
+                    </div>
+                    ${isEmpty
+                        ? '<div class="chart-empty">No history data available</div>'
+                        : '<div class="chart-container"><canvas id="historyChart"></canvas></div>'
+                    }
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            if (!isEmpty) {
+                drawChart(data);
+            }
+        }
+
+        function closeChart() {
+            if (currentChart) { currentChart.destroy(); currentChart = null; }
+            const overlay = document.querySelector('.chart-overlay');
+            if (overlay) overlay.remove();
+        }
+
+        function drawChart(data) {
+            const canvas = document.getElementById('historyChart');
+            const ctx = canvas.getContext('2d');
+
+            const labels = data.map(d => {
+                const dt = new Date(d.checked_at);
+                return `${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
+            });
+
+            const hoursAgoValues = data.map(d => {
+                if (!d.last_data_at) return null;
+                const checked = new Date(d.checked_at);
+                const lastData = new Date(d.last_data_at);
+                return Math.max(0, (checked - lastData) / 3600000);
+            });
+
+            const statusColors = data.map(d => {
+                switch (d.status) {
+                    case 'ok': return '#2ecc71';
+                    case 'warning': return '#f39c12';
+                    case 'critical': return '#e74c3c';
+                    case 'error': return '#e74c3c';
+                    default: return '#999';
+                }
+            });
+
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            const W = rect.width;
+            const H = rect.height;
+            const pad = { top: 20, right: 20, bottom: 50, left: 55 };
+            const plotW = W - pad.left - pad.right;
+            const plotH = H - pad.top - pad.bottom;
+
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const axisColor = isDark ? '#666' : '#ddd';
+            const textColor = isDark ? '#999' : '#888';
+            const lineColor = isDark ? '#6e8efb' : '#4361ee';
+
+            const validValues = hoursAgoValues.filter(v => v !== null);
+            const maxY = validValues.length > 0 ? Math.max(...validValues) * 1.2 : 24;
+            const minY = 0;
+
+            ctx.clearRect(0, 0, W, H);
+
+            ctx.strokeStyle = axisColor;
+            ctx.lineWidth = 0.5;
+            ctx.font = `11px -apple-system, sans-serif`;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'right';
+
+            const yTicks = 5;
+            for (let i = 0; i <= yTicks; i++) {
+                const val = minY + (maxY - minY) * (i / yTicks);
+                const y = pad.top + plotH - (i / yTicks) * plotH;
+                ctx.beginPath();
+                ctx.moveTo(pad.left, y);
+                ctx.lineTo(W - pad.right, y);
+                ctx.stroke();
+                ctx.fillText(val < 1 ? val.toFixed(1) + 'h' : Math.round(val) + 'h', pad.left - 8, y + 4);
+            }
+
+            ctx.strokeStyle = lineColor;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+
+            let firstPoint = true;
+            const points = [];
+
+            for (let i = 0; i < hoursAgoValues.length; i++) {
+                if (hoursAgoValues[i] === null) continue;
+                const x = pad.left + (i / Math.max(hoursAgoValues.length - 1, 1)) * plotW;
+                const y = pad.top + plotH - ((hoursAgoValues[i] - minY) / (maxY - minY)) * plotH;
+                points.push({ x, y, i });
+                if (firstPoint) { ctx.moveTo(x, y); firstPoint = false; }
+                else { ctx.lineTo(x, y); }
+            }
+            ctx.stroke();
+
+            points.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.fillStyle = statusColors[p.i];
+                ctx.fill();
+            });
+
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            const step = Math.max(1, Math.floor(labels.length / 6));
+            for (let i = 0; i < labels.length; i += step) {
+                const x = pad.left + (i / Math.max(labels.length - 1, 1)) * plotW;
+                ctx.save();
+                ctx.translate(x, H - pad.bottom + 14);
+                ctx.rotate(-0.4);
+                ctx.fillText(labels[i], 0, 0);
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.translate(14, pad.top + plotH / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = textColor;
+            ctx.font = `12px -apple-system, sans-serif`;
+            ctx.fillText('Data Age', 0, 0);
+            ctx.restore();
+
+            currentChart = { destroy: () => {} };
+        }
+
+        // ── Utilities ──
         function formatDatetime(iso) {
             try {
                 const d = new Date(iso);
@@ -434,10 +714,8 @@
             return div.innerHTML;
         }
 
-        // Initial load
+        // ── Init ──
         fetchStatus();
-
-        // Auto-refresh every 30 seconds
         autoRefreshTimer = setInterval(fetchStatus, 30000);
     </script>
 </body>

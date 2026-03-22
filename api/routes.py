@@ -1,12 +1,16 @@
+import time
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from checker.config_loader import load_config
 from checker.db_connector import run_all_checks
-from checker.models import get_all_results, get_results_by_service, get_history
+from checker.models import get_all_results, get_results_by_service, get_history, get_chart_data
 
 router = APIRouter(prefix="/api")
+
+_last_manual_check: float = 0.0
+RATE_LIMIT_SECONDS = 30
 
 
 def _calc_hours_ago(iso_str: str | None) -> float | None:
@@ -113,7 +117,23 @@ async def history(service_name: str):
     return {"service_name": service_name, "history": rows}
 
 
+@router.get("/chart/{service_name}/{table_name}")
+async def chart(service_name: str, table_name: str, days: int = 7):
+    rows = await get_chart_data(service_name, table_name, days)
+    return {"service_name": service_name, "table_name": table_name, "data": rows}
+
+
 @router.post("/check/now")
 async def check_now(background_tasks: BackgroundTasks):
+    global _last_manual_check
+    now = time.time()
+    elapsed = now - _last_manual_check
+    if elapsed < RATE_LIMIT_SECONDS:
+        remaining = int(RATE_LIMIT_SECONDS - elapsed)
+        raise HTTPException(
+            status_code=429,
+            detail=f"{remaining}초 후에 다시 시도해주세요.",
+        )
+    _last_manual_check = now
     background_tasks.add_task(run_all_checks)
     return {"message": "Check triggered", "status": "running"}

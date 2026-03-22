@@ -87,6 +87,23 @@ async def get_results_by_service(service_name: str) -> list[dict]:
         return [dict(row) for row in rows]
 
 
+async def get_chart_data(service_name: str, table_name: str, days: int = 7) -> list[dict]:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        cursor = await db.execute(
+            """
+            SELECT checked_at, status, last_data_at
+            FROM check_history
+            WHERE service_name = ? AND table_name = ?
+              AND checked_at >= datetime('now', ?)
+            ORDER BY checked_at ASC
+            """,
+            (service_name, table_name, f"-{days} days"),
+        )
+        rows = await cursor.fetchall()
+        return [dict(row) for row in rows]
+
+
 async def get_history(service_name: str, limit: int = 100) -> list[dict]:
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
