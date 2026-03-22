@@ -202,6 +202,7 @@
         .check-right { display: flex; align-items: center; gap: 12px; text-align: right; }
         .check-time { font-size: 13px; color: var(--text-sub); }
         .check-ago { font-size: 12px; color: var(--text-muted); }
+        .check-interval { font-size: 11px; color: var(--ok); font-weight: 500; }
 
         .check-error {
             font-size: 12px;
@@ -458,6 +459,8 @@
             const timeStr = c.last_data_at ? formatDatetime(c.last_data_at) : '-';
             const agoStr = c.hours_ago !== null && c.hours_ago !== undefined
                 ? formatHoursAgo(c.hours_ago) : '';
+            const intervalStr = c.data_interval !== null && c.data_interval !== undefined
+                ? formatInterval(c.data_interval) : '';
             const errorStr = c.error_message
                 ? `<div class="check-error">${esc(c.error_message)}</div>` : '';
 
@@ -474,6 +477,7 @@
                         <div>
                             <div class="check-time">${timeStr}</div>
                             <div class="check-ago">${agoStr}</div>
+                            ${intervalStr ? `<div class="check-interval">${intervalStr}</div>` : ''}
                             ${errorStr}
                         </div>
                         <span class="status-dot ${c.status}"></span>
@@ -686,6 +690,20 @@
             } catch {
                 return iso;
             }
+        }
+
+        function formatInterval(hours) {
+            const totalMins = Math.round(hours * 60);
+            if (totalMins < 1) return '';
+            if (totalMins < 60) return `${totalMins}분 만에 갱신`;
+            if (hours < 24) {
+                const h = Math.floor(hours);
+                const m = Math.round((hours - h) * 60);
+                return m > 0 ? `${h}시간 ${m}분 만에 갱신` : `${h}시간 만에 갱신`;
+            }
+            const days = Math.floor(hours / 24);
+            const remainHours = Math.round(hours % 24);
+            return remainHours > 0 ? `${days}일 ${remainHours}시간 만에 갱신` : `${days}일 만에 갱신`;
         }
 
         function formatHoursAgo(hours) {

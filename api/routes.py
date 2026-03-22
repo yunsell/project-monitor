@@ -26,6 +26,22 @@ def _calc_hours_ago(iso_str: str | None) -> float | None:
         return None
 
 
+def _calc_data_interval(prev: str | None, curr: str | None) -> float | None:
+    if not prev or not curr:
+        return None
+    try:
+        dt_prev = datetime.fromisoformat(prev)
+        dt_curr = datetime.fromisoformat(curr)
+        if dt_prev.tzinfo is None:
+            dt_prev = dt_prev.replace(tzinfo=timezone.utc)
+        if dt_curr.tzinfo is None:
+            dt_curr = dt_curr.replace(tzinfo=timezone.utc)
+        diff = (dt_curr - dt_prev).total_seconds() / 3600
+        return round(diff, 2) if diff > 0 else None
+    except (ValueError, TypeError):
+        return None
+
+
 @router.get("/status")
 async def status():
     config = load_config()
@@ -53,11 +69,13 @@ async def status():
             }
 
         hours_ago = _calc_hours_ago(row["last_data_at"])
+        data_interval = _calc_data_interval(row.get("prev_last_data_at"), row["last_data_at"])
         check_item = {
             "table": row["table_name"],
             "label": row["check_label"],
             "last_data_at": row["last_data_at"],
             "hours_ago": hours_ago,
+            "data_interval": data_interval,
             "status": row["status"],
             "error_message": row.get("error_message"),
         }
@@ -95,11 +113,13 @@ async def status_by_service(service_name: str):
     checks = []
     for row in results:
         hours_ago = _calc_hours_ago(row["last_data_at"])
+        data_interval = _calc_data_interval(row.get("prev_last_data_at"), row["last_data_at"])
         checks.append({
             "table": row["table_name"],
             "label": row["check_label"],
             "last_data_at": row["last_data_at"],
             "hours_ago": hours_ago,
+            "data_interval": data_interval,
             "status": row["status"],
             "error_message": row.get("error_message"),
         })

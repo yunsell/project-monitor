@@ -12,12 +12,18 @@ async def init_db():
                 table_name TEXT NOT NULL,
                 check_label TEXT,
                 last_data_at TEXT,
+                prev_last_data_at TEXT,
                 checked_at TEXT NOT NULL,
                 status TEXT DEFAULT 'ok',
                 error_message TEXT,
                 UNIQUE(service_name, table_name)
             )
         """)
+        # Migration: add prev_last_data_at if table already exists without it
+        try:
+            await db.execute("ALTER TABLE check_results ADD COLUMN prev_last_data_at TEXT")
+        except Exception:
+            pass
         await db.execute("""
             CREATE TABLE IF NOT EXISTS check_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +54,7 @@ async def upsert_result(
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(service_name, table_name) DO UPDATE SET
                 check_label = excluded.check_label,
+                prev_last_data_at = check_results.last_data_at,
                 last_data_at = excluded.last_data_at,
                 checked_at = excluded.checked_at,
                 status = excluded.status,
