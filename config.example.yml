@@ -1,0 +1,52 @@
+# 모니터링 설정
+monitor:
+  check_interval_minutes: 10    # 체크 주기
+  alert_threshold_hours: 24     # 이 시간 이상 데이터 없으면 경고
+  critical_threshold_hours: 72  # 이 시간 이상이면 위험
+
+# 알림 설정
+alert:
+  enabled: false                         # true로 변경하여 활성화
+  type: "slack"                          # slack / discord / custom_webhook
+  webhook_url: "${SLACK_WEBHOOK_URL}"    # .env에서 관리
+
+# 모니터링 대상 서비스
+services:
+  - name: "ecommerce-api"
+    description: "이커머스 주문 서비스"
+    host: "localhost"
+    port: 3306
+    user: "${DB_USER}"
+    password: "${DB_PASS}"
+    database: "ecommerce_db"
+    checks:
+      - table: "orders"
+        column: "created_at"
+        label: "주문 데이터"
+      - table: "user_sessions"
+        column: "last_active"
+        label: "사용자 세션"
+
+  - name: "payment-service"
+    description: "결제 처리 서비스"
+    host: "db.example.com"
+    port: 3306
+    user: "${PAYMENT_DB_USER}"
+    password: "${PAYMENT_DB_PASS}"
+    database: "payment_db"
+    checks:
+      - table: "transactions"
+        column: "processed_at"
+        label: "결제 트랜잭션"
+
+  - name: "log-collector"
+    description: "로그 수집 서비스"
+    host: "192.168.1.100"
+    port: 3306
+    user: "${LOG_DB_USER}"
+    password: "${LOG_DB_PASS}"
+    database: "log_db"
+    checks:
+      - table: "app_logs"
+        column: "logged_at"
+        label: "애플리케이션 로그"

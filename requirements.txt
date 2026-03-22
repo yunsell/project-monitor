@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+apscheduler
+pymysql
+pyyaml
+python-dotenv
+aiosqlite
+sqlalchemy
+httpx

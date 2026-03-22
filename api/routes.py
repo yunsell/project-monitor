@@ -1,0 +1,119 @@
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, BackgroundTasks
+
+from checker.config_loader import load_config
+from checker.db_connector import run_all_checks
+from checker.models import get_all_results, get_results_by_service, get_history
+
+router = APIRouter(prefix="/api")
+
+
+def _calc_hours_ago(iso_str: str | None) -> float | None:
+    if not iso_str:
+        return None
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        return round((now - dt).total_seconds() / 3600, 2)
+    except (ValueError, TypeError):
+        return None
+
+
+@router.get("/status")
+async def status():
+    config = load_config()
+    results = await get_all_results()
+
+    service_map: dict[str, dict] = {}
+    for svc in config.get("services", []):
+        service_map[svc["name"]] = {
+            "name": svc["name"],
+            "description": svc.get("description", ""),
+            "checks": [],
+            "overall_status": "ok",
+        }
+
+    status_priority = {"critical": 3, "error": 3, "warning": 2, "ok": 1}
+
+    for row in results:
+        svc_name = row["service_name"]
+        if svc_name not in service_map:
+            service_map[svc_name] = {
+                "name": svc_name,
+                "description": "",
+                "checks": [],
+                "overall_status": "ok",
+            }
+
+        hours_ago = _calc_hours_ago(row["last_data_at"])
+        check_item = {
+            "table": row["table_name"],
+            "label": row["check_label"],
+            "last_data_at": row["last_data_at"],
+            "hours_ago": hours_ago,
+            "status": row["status"],
+            "error_message": row.get("error_message"),
+        }
+        service_map[svc_name]["checks"].append(check_item)
+
+        cur_priority = status_priority.get(row["status"], 0)
+        overall_priority = status_priority.get(service_map[svc_name]["overall_status"], 0)
+        if cur_priority > overall_priority:
+            service_map[svc_name]["overall_status"] = row["status"]
+
+    services = list(service_map.values())
+
+    summary = {"total": 0, "ok": 0, "warning": 0, "critical": 0, "error": 0}
+    for row in results:
+        summary["total"] += 1
+        s = row["status"]
+        if s in summary:
+            summary[s] += 1
+
+    checked_at = results[0]["checked_at"] if results else None
+
+    return {
+        "checked_at": checked_at,
+        "summary": summary,
+        "services": services,
+    }
+
+
+@router.get("/status/{service_name}")
+async def status_by_service(service_name: str):
+    results = await get_results_by_service(service_name)
+    if not results:
+        return {"service_name": service_name, "checks": [], "message": "No data"}
+
+    checks = []
+    for row in results:
+        hours_ago = _calc_hours_ago(row["last_data_at"])
+        checks.append({
+            "table": row["table_name"],
+            "label": row["check_label"],
+            "last_data_at": row["last_data_at"],
+            "hours_ago": hours_ago,
+            "status": row["status"],
+            "error_message": row.get("error_message"),
+        })
+
+    return {
+        "service_name": service_name,
+        "checked_at": results[0]["checked_at"],
+        "checks": checks,
+    }
+
+
+@router.get("/history/{service_name}")
+async def history(service_name: str):
+    rows = await get_history(service_name)
+    return {"service_name": service_name, "history": rows}
+
+
+@router.post("/check/now")
+async def check_now(background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_all_checks)
+    return {"message": "Check triggered", "status": "running"}

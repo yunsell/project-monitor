@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Freshness Monitor</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a2e;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .last-check {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .btn-refresh {
+            background: #4361ee;
+            color: #fff;
+        }
+
+        .btn-refresh:hover { background: #3a56d4; }
+        .btn-refresh:disabled { background: #a0a0a0; cursor: not-allowed; }
+
+        .container {
+            max-width: 900px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+
+        .summary {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            flex: 1;
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border-top: 4px solid transparent;
+        }
+
+        .summary-card.ok { border-top-color: #2ecc71; }
+        .summary-card.warning { border-top-color: #f39c12; }
+        .summary-card.critical { border-top-color: #e74c3c; }
+        .summary-card.error { border-top-color: #e74c3c; }
+
+        .summary-count {
+            font-size: 36px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .summary-card.ok .summary-count { color: #2ecc71; }
+        .summary-card.warning .summary-count { color: #f39c12; }
+        .summary-card.critical .summary-count { color: #e74c3c; }
+        .summary-card.error .summary-count { color: #e74c3c; }
+
+        .summary-label {
+            font-size: 13px;
+            color: #888;
+            margin-top: 6px;
+        }
+
+        .service-card {
+            background: #fff;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+
+        .service-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.1s;
+        }
+
+        .service-header:hover { background: #fafafa; }
+
+        .service-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .service-name {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .service-desc {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.ok { background: #d5f5e3; color: #1e8449; }
+        .status-badge.warning { background: #fdebd0; color: #b7950b; }
+        .status-badge.critical { background: #fadbd8; color: #a93226; }
+        .status-badge.error { background: #fadbd8; color: #a93226; }
+
+        .service-checks {
+            border-top: 1px solid #f0f0f0;
+            display: none;
+        }
+
+        .service-card.open .service-checks {
+            display: block;
+        }
+
+        .check-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px 12px 36px;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .check-row:last-child { border-bottom: none; }
+
+        .check-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .check-label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .check-table {
+            font-size: 12px;
+            color: #aaa;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .check-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-align: right;
+        }
+
+        .check-time {
+            font-size: 13px;
+            color: #555;
+        }
+
+        .check-ago {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .check-error {
+            font-size: 12px;
+            color: #e74c3c;
+            max-width: 300px;
+            word-break: break-word;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        .status-dot.ok { background: #2ecc71; }
+        .status-dot.warning { background: #f39c12; }
+        .status-dot.critical { background: #e74c3c; }
+        .status-dot.error { background: #e74c3c; }
+
+        .chevron {
+            transition: transform 0.2s;
+            color: #ccc;
+            font-size: 12px;
+        }
+
+        .service-card.open .chevron {
+            transform: rotate(90deg);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #aaa;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: #aaa;
+        }
+
+        @media (max-width: 600px) {
+            .header { padding: 16px; flex-direction: column; gap: 12px; }
+            .summary { flex-wrap: wrap; }
+            .summary-card { min-width: 45%; }
+            .container { padding: 0 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Data Freshness Monitor</h1>
+        <div class="header-right">
+            <span class="last-check" id="lastCheck"></span>
+            <button class="btn btn-refresh" id="btnRefresh" onclick="triggerCheck()">
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="summary" id="summary"></div>
+        <div id="services">
+            <div class="loading">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        let autoRefreshTimer = null;
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch(`${API_BASE}/status`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                renderDashboard(data);
+            } catch (e) {
+                document.getElementById('services').innerHTML =
+                    '<div class="empty-state"><p>API connection failed</p><p style="font-size:13px">' + e.message + '</p></div>';
+            }
+        }
+
+        function renderDashboard(data) {
+            // Summary
+            const s = data.summary || { ok: 0, warning: 0, critical: 0, error: 0 };
+            document.getElementById('summary').innerHTML = `
+                <div class="summary-card ok">
+                    <div class="summary-count">${s.ok}</div>
+                    <div class="summary-label">OK</div>
+                </div>
+                <div class="summary-card warning">
+                    <div class="summary-count">${s.warning}</div>
+                    <div class="summary-label">Warning</div>
+                </div>
+                <div class="summary-card critical">
+                    <div class="summary-count">${s.critical}</div>
+                    <div class="summary-label">Critical</div>
+                </div>
+                <div class="summary-card error">
+                    <div class="summary-count">${s.error}</div>
+                    <div class="summary-label">Error</div>
+                </div>
+            `;
+
+            // Last check time
+            if (data.checked_at) {
+                document.getElementById('lastCheck').textContent =
+                    'Last check: ' + formatDatetime(data.checked_at);
+            }
+
+            // Services
+            const container = document.getElementById('services');
+            if (!data.services || data.services.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>No services configured</p></div>';
+                return;
+            }
+
+            container.innerHTML = data.services.map(svc => `
+                <div class="service-card" onclick="toggleCard(this)">
+                    <div class="service-header">
+                        <div class="service-info">
+                            <span class="chevron">&#9654;</span>
+                            <div>
+                                <div class="service-name">${esc(svc.name)}</div>
+                                <div class="service-desc">${esc(svc.description)}</div>
+                            </div>
+                        </div>
+                        <span class="status-badge ${svc.overall_status}">${statusLabel(svc.overall_status)}</span>
+                    </div>
+                    <div class="service-checks">
+                        ${svc.checks.map(c => renderCheck(c)).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderCheck(c) {
+            const timeStr = c.last_data_at ? formatDatetime(c.last_data_at) : '-';
+            const agoStr = c.hours_ago !== null && c.hours_ago !== undefined
+                ? formatHoursAgo(c.hours_ago) : '';
+            const errorStr = c.error_message
+                ? `<div class="check-error">${esc(c.error_message)}</div>` : '';
+
+            return `
+                <div class="check-row">
+                    <div class="check-left">
+                        <span class="check-label">${esc(c.label || c.table)}</span>
+                        <span class="check-table">${esc(c.table)}</span>
+                    </div>
+                    <div class="check-right">
+                        <div>
+                            <div class="check-time">${timeStr}</div>
+                            <div class="check-ago">${agoStr}</div>
+                            ${errorStr}
+                        </div>
+                        <span class="status-dot ${c.status}"></span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleCard(el) {
+            el.classList.toggle('open');
+        }
+
+        async function triggerCheck() {
+            const btn = document.getElementById('btnRefresh');
+            btn.disabled = true;
+            btn.textContent = 'Checking...';
+            try {
+                await fetch(`${API_BASE}/check/now`, { method: 'POST' });
+                // Wait a moment for checks to complete
+                setTimeout(async () => {
+                    await fetchStatus();
+                    btn.disabled = false;
+                    btn.textContent = 'Refresh';
+                }, 3000);
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Refresh';
+            }
+        }
+
+        function formatDatetime(iso) {
+            try {
+                const d = new Date(iso);
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const hours = String(d.getHours()).padStart(2, '0');
+                const mins = String(d.getMinutes()).padStart(2, '0');
+                return `${month}-${day} ${hours}:${mins}`;
+            } catch {
+                return iso;
+            }
+        }
+
+        function formatHoursAgo(hours) {
+            if (hours < 1) {
+                const mins = Math.round(hours * 60);
+                return `${mins}min ago`;
+            }
+            if (hours < 24) {
+                return `${Math.round(hours)}h ago`;
+            }
+            const days = Math.round(hours / 24);
+            return `${days}d ago`;
+        }
+
+        function statusLabel(s) {
+            const labels = { ok: 'OK', warning: 'Warning', critical: 'Critical', error: 'Error' };
+            return labels[s] || s;
+        }
+
+        function esc(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Initial load
+        fetchStatus();
+
+        // Auto-refresh every 30 seconds
+        autoRefreshTimer = setInterval(fetchStatus, 30000);
+    </script>
+</body>
+</html>
